@@ -22,7 +22,7 @@ public class AuditLogAspect {
 
     private final AuditLogRepo auditLogRepo;
     private final AuditIdentityResolver identityResolver;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @AfterReturning(pointcut = "@annotation(auditable)", returning = "result")
     public void logAction(JoinPoint joinPoint, Auditable auditable, Object result) {
