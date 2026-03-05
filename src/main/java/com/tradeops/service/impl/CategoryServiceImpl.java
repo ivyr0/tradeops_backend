@@ -9,6 +9,8 @@ import com.tradeops.repo.CategoryRepo;
 import com.tradeops.repo.TraderRepo;
 import com.tradeops.service.CategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,6 +73,13 @@ public class CategoryServiceImpl implements CategoryService {
                 })
                 .toList();
         return cm.toCategoryResponseList(filteredList);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CategoryResponse> getAllCategories(Pageable pageable) {
+        Page<Category> categoryPage = categoryRepo.getAll(pageable);
+        return categoryPage.map(cm::toCategoryResponse);
     }
 
 

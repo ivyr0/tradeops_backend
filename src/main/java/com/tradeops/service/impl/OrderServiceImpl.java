@@ -3,9 +3,11 @@ package com.tradeops.service.impl;
 import com.tradeops.exceptions.InvalidPaymentMethodException;
 import com.tradeops.exceptions.InvalidStatusTransitionException;
 import com.tradeops.exceptions.ResourceNotFoundException;
+import com.tradeops.mapper.OrderMapper;
 import com.tradeops.model.entity.*;
 import com.tradeops.model.request.CreateOrderRequest;
 import com.tradeops.model.request.OrderLineRequest;
+import com.tradeops.model.response.OrderResponse;
 import com.tradeops.repo.CustomerLinkRepo;
 import com.tradeops.repo.OrderRepo;
 import com.tradeops.repo.ProductRepo;
@@ -17,8 +19,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import com.tradeops.annotation.Auditable;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Pageable;
+
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -39,9 +44,11 @@ public class OrderServiceImpl implements OrderService {
     private final InventoryService inventoryService;
     private final CustomerLinkRepo customerLinkRepo;
 
+    private final OrderMapper orderMapper;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Order createOrder(CreateOrderRequest request) {
+    public OrderResponse createOrder(CreateOrderRequest request) {
 
         if (!"COD".equalsIgnoreCase(request.paymentMethod())) {
             throw new InvalidPaymentMethodException("Only COD (Cash On Delivery) is supported");
@@ -92,14 +99,15 @@ public class OrderServiceImpl implements OrderService {
 
         order.setTotals(totals);
         order.setOrderLines(orderLines);
+        Order savedOrder = orderRepo.save(order);
 
-        return orderRepo.save(order);
+        return orderMapper.toOrderResponse(savedOrder);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @Auditable(action = "ORDER_STATUS_CHANGED", entityType = "ORDER")
-    public Order changeOrderStatus(@NotNull Long orderId, @NotNull OrderStatus newStatus) {
+    public OrderResponse changeOrderStatus(@NotNull Long orderId, @NotNull OrderStatus newStatus) {
         Order order = orderRepo.findById(orderId).orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         getOrderStatus(newStatus, order);
 
@@ -110,7 +118,25 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setStatus(newStatus);
-        return orderRepo.save(order);
+        Order savedOrder = orderRepo.save(order);
+
+        return orderMapper.toOrderResponse(savedOrder);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Page<OrderResponse> getAllOrders(Pageable pageable) {
+        Page<Order> ordersPage = orderRepo.findAll(pageable);
+
+        return ordersPage.map(orderMapper::toOrderResponse);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Page<OrderResponse> getAllOrders(Long traderId, Pageable pageable) {
+        Page<Order> ordersPage = orderRepo.findByTraderId(traderId, pageable);
+
+        return ordersPage.map(orderMapper::toOrderResponse);
     }
 
     private static @NonNull OrderStatus getOrderStatus(OrderStatus newStatus, Order order) {

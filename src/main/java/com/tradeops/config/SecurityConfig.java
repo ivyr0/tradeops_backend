@@ -34,24 +34,25 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/v1/auth/**").permitAll()
-                    .requestMatchers("/api/v1/catalog/**").permitAll()
-                    .requestMatchers("/api/v1/storefront/**").permitAll()
-                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui/index.html", "/swagger-ui.html").permitAll()
-
-                    .requestMatchers("/api/v1/admin/catalog/**")
-                    .hasAnyAuthority("SUPER_ADMIN", "CATALOG_MANAGER", "ROLE_SUPER_ADMIN", "ROLE_CATALOG_MANAGER")
-
-                    .requestMatchers("/api/v1/admin/inventory/**")
-                    .hasAnyAuthority("SUPER_ADMIN", "CATALOG_MANAGER", "WAREHOUSE_OPS", "ROLE_SUPER_ADMIN", "ROLE_CATALOG_MANAGER", "ROLE_WAREHOUSE_OPS")
-
-                    .requestMatchers("/api/v1/admin/orders/**")
-                    .hasAnyAuthority("SUPER_ADMIN", "WAREHOUSE_OPS", "DISPATCHER", "ROLE_SUPER_ADMIN", "ROLE_WAREHOUSE_OPS", "ROLE_DISPATCHER")
-
-                    .requestMatchers("/api/v1/trader/**")
-                    .hasAnyAuthority("TRADER_ADMIN", "TRADER_STAFF", "ROLE_TRADER_ADMIN", "ROLE_TRADER_STAFF")
-
-                    .anyRequest().authenticated()
+//                    .requestMatchers("/api/v1/auth/**").permitAll()
+//                    .requestMatchers("/api/v1/catalog/**").permitAll()
+//                    .requestMatchers("/api/v1/storefront/**").permitAll()
+//                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui/index.html", "/swagger-ui.html").permitAll()
+//
+//                    .requestMatchers("/api/v1/admin/catalog/**")
+//                    .hasAnyAuthority("SUPER_ADMIN", "CATALOG_MANAGER", "ROLE_SUPER_ADMIN", "ROLE_CATALOG_MANAGER")
+//
+//                    .requestMatchers("/api/v1/admin/inventory/**")
+//                    .hasAnyAuthority("SUPER_ADMIN", "CATALOG_MANAGER", "WAREHOUSE_OPS", "ROLE_SUPER_ADMIN", "ROLE_CATALOG_MANAGER", "ROLE_WAREHOUSE_OPS")
+//
+//                    .requestMatchers("/api/v1/admin/orders/**")
+//                    .hasAnyAuthority("SUPER_ADMIN", "WAREHOUSE_OPS", "DISPATCHER", "ROLE_SUPER_ADMIN", "ROLE_WAREHOUSE_OPS", "ROLE_DISPATCHER")
+//
+//                    .requestMatchers("/api/v1/trader/**")
+//                    .hasAnyAuthority("TRADER_ADMIN", "TRADER_STAFF", "ROLE_TRADER_ADMIN", "ROLE_TRADER_STAFF")
+//
+//                    .anyRequest().authenticated()
+                            .anyRequest().permitAll()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

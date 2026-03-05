@@ -7,10 +7,12 @@ import jakarta.persistence.OptimisticLockException;
 import jakarta.persistence.PersistenceException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.apache.catalina.connector.ClientAbortException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -121,6 +123,11 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleLockedAccount(LockedException ex) {
     return ResponseEntity.status(HttpStatus.FORBIDDEN)
             .body(buildError("account_locked", "Your account has been locked", null));
+  }
+
+  @ExceptionHandler(ClientAbortException.class)
+  public void handleClientAbortException(ClientAbortException ex) {
+    logger.warn("Client aborted connection before response was fully sent (Broken pipe).");
   }
 
   // ==================== BUSINESS LOGIC EXCEPTIONS ====================
@@ -418,5 +425,21 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(buildError("internal_server_error",
                     "An unexpected error occurred. Please contact support with trace ID: " + traceId, null));
+  }
+
+
+  @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+  public ResponseEntity<ErrorResponse> handleInvalidDataAccessApiUsage(InvalidDataAccessApiUsageException ex) {
+    logger.warn("Invalid Data Access / Bad Sort Parameter: {}", ex.getMessage());
+
+    ErrorResponse error = new ErrorResponse(
+            new ErrorDetail(
+                    "invalid_sort_parameter",
+                    "Invalid sorting parameter provided. Please use valid entity fields.",
+                    null,
+                    UUID.randomUUID().toString() // Если у тебя traceId генерируется иначе, используй свой метод
+            )
+    );
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 }
