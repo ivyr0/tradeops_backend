@@ -33,4 +33,9 @@ public class SuperAdminTraderController {
     public ResponseEntity<Trader> updateTrader(@PathVariable Long id, @Valid @RequestBody UpdateTraderRequest request) {
         return ResponseEntity.ok(traderManagementService.updateTrader(id, request));
     }
+
+    @GetMapping
+    public ResponseEntity<java.util.List<Trader>> getAllTraders() {
+        return ResponseEntity.ok(traderManagementService.getAllTraders());
+    }
 }

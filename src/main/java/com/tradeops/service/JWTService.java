@@ -1,6 +1,6 @@
 package com.tradeops.service;
 
-import com.tradeops.security.SecurityConstants;
+import com.tradeops.other.SecurityConstants;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -31,20 +31,20 @@ public class JWTService {
   public String generateToken(Authentication authentication, List<String> scopes) {
     String username = authentication.getName();
     List<String> roles = authentication.getAuthorities().stream()
-      .map(GrantedAuthority::getAuthority)
-      .collect(Collectors.toList());
+        .map(GrantedAuthority::getAuthority)
+        .collect(Collectors.toList());
 
     Date now = new Date();
     Date expiry = new Date(now.getTime() + SecurityConstants.JWT_EXPIRATION_TIME);
 
     return Jwts.builder()
-            .subject(username)
-            .claim("roles", roles)
-            .claim("scopes", scopes) // Add this claim
-            .issuedAt(now)
-            .expiration(expiry)
-            .signWith(getKey())
-            .compact();
+        .subject(username)
+        .claim("roles", roles)
+        .claim("scopes", scopes) // Add this claim
+        .issuedAt(now)
+        .expiration(expiry)
+        .signWith(getKey())
+        .compact();
   }
 
   public String generateRefreshToken(Authentication authentication) {
@@ -53,31 +53,32 @@ public class JWTService {
     Date expirationDate = new Date(currentDate.getTime() + SecurityConstants.JWT_REFRESH_EXPIRATION_TIME);
 
     return Jwts.builder()
-      .subject(username)
-      .issuedAt(currentDate)
-      .expiration(expirationDate)
-      .signWith(getKey())
-      .compact();
+        .subject(username)
+        .issuedAt(currentDate)
+        .expiration(expirationDate)
+        .signWith(getKey())
+        .compact();
   }
-  //telusko method
-//    public String generateToken(Authentication authentication) {
-//        Map<String, Object> claims = new HashMap<>();
-//
-//        String username = authentication.getName();
-//        List<String> roles = authentication.getAuthorities().stream()
-//                .map(GrantedAuthority::getAuthority).toList();
-//
-//        return Jwts.builder()
-//                .claims()
-//                .add(claims)
-//                .subject(username)
-//                .issuedAt(new Date(System.currentTimeMillis()))
-//                .expiration(new Date(System.currentTimeMillis() + SecurityConstants.JWT_REFRESH_EXPIRATION_TIME))
-//                .and()
-//                .signWith(getKey())
-//                .compact();
-//
-//    }
+  // telusko method
+  // public String generateToken(Authentication authentication) {
+  // Map<String, Object> claims = new HashMap<>();
+  //
+  // String username = authentication.getName();
+  // List<String> roles = authentication.getAuthorities().stream()
+  // .map(GrantedAuthority::getAuthority).toList();
+  //
+  // return Jwts.builder()
+  // .claims()
+  // .add(claims)
+  // .subject(username)
+  // .issuedAt(new Date(System.currentTimeMillis()))
+  // .expiration(new Date(System.currentTimeMillis() +
+  // SecurityConstants.JWT_REFRESH_EXPIRATION_TIME))
+  // .and()
+  // .signWith(getKey())
+  // .compact();
+  //
+  // }
 
   public String extractUserName(String token) {
     // extract the username from jwt token
@@ -91,10 +92,10 @@ public class JWTService {
 
   private Claims extractAllClaims(String token) {
     return Jwts.parser()
-      .verifyWith(getKey())
-      .build()
-      .parseSignedClaims(token)
-      .getPayload();
+        .verifyWith(getKey())
+        .build()
+        .parseSignedClaims(token)
+        .getPayload();
   }
 
   public boolean validateToken(String token, UserDetails userDetails) {
@@ -111,5 +112,3 @@ public class JWTService {
   }
 
 }
-
-

@@ -58,4 +58,9 @@ public class TraderManagementServiceImpl {
 
         return traderRepo.save(trader);
     }
+
+    @Transactional(readOnly = true)
+    public java.util.List<Trader> getAllTraders() {
+        return traderRepo.findAll();
+    }
 }

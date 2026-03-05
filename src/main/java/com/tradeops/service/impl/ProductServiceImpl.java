@@ -32,7 +32,8 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(rollbackFor = Exception.class)
     public ProductResponse createProduct(ProductRequest request) {
         Category category = categoryRepo.findById(request.categoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category with ID " + request.categoryId() + " not found"));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Category with ID " + request.categoryId() + " not found"));
 
         Product product = new Product();
         product.setSku(request.sku());
@@ -69,8 +70,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         Page<Product> productsPage = productRepo.findStorefrontProducts(
-                allowedCategoryIds, categoryId, query, pageable
-        );
+                allowedCategoryIds, categoryId, query, pageable);
 
         return productsPage.map(this::mapToResponse);
     }
@@ -90,6 +90,13 @@ public class ProductServiceImpl implements ProductService {
         return mapToResponse(product);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getAllProducts(Pageable pageable) {
+        Page<Product> productsPage = productRepo.findAll(pageable);
+        return productsPage.map(this::mapToResponse);
+    }
+
     private ProductResponse mapToResponse(Product product) {
         Integer availableQty = 0;
 
@@ -107,7 +114,6 @@ public class ProductServiceImpl implements ProductService {
                 product.isActive(),
                 product.getImages(),
                 product.getCategory() != null ? product.getCategory().getId() : null,
-                availableQty
-        );
+                availableQty);
     }
 }
