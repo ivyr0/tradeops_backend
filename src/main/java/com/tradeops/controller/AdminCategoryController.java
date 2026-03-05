@@ -20,7 +20,7 @@ public class AdminCategoryController {
     private final CategoryService categoryService;
 
     @GetMapping
-    public ResponseEntity<Page<CategoryResponse>> getAllCategories(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)Pageable pageable){
+    public ResponseEntity<Page<CategoryResponse>> getAllCategories(@PageableDefault(size = 20, direction = Sort.Direction.DESC)Pageable pageable){
         return ResponseEntity.ok(categoryService.getAllCategories(pageable));
     }
 

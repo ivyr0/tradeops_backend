@@ -78,7 +78,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public Page<CategoryResponse> getAllCategories(Pageable pageable) {
-        Page<Category> categoryPage = categoryRepo.getAll(pageable);
+        Page<Category> categoryPage = categoryRepo.findRootCategories(pageable);
         return categoryPage.map(cm::toCategoryResponse);
     }
 
