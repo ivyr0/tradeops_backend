@@ -1,7 +1,8 @@
 package com.tradeops.controller;
 
 import com.tradeops.model.entity.DeliveryAssignment;
-import com.tradeops.service.impl.CourierServiceImpl;
+import com.tradeops.model.response.DeliveryAssignmentResponse;
+import com.tradeops.service.CourierService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,20 +16,20 @@ import java.util.List;
 @PreAuthorize("hasAuthority('ROLE_COURIER')")
 public class CourierController {
 
-    private final CourierServiceImpl courierService;
+    private final CourierService courierService;
 
     @GetMapping
-    public ResponseEntity<List<DeliveryAssignment>> getMyFeed() {
+    public ResponseEntity<List<DeliveryAssignmentResponse>> getMyFeed() {
         return ResponseEntity.ok(courierService.getActiveAssignments());
     }
 
     @PatchMapping("/{id}/accept")
-    public ResponseEntity<DeliveryAssignment> acceptOrder(@PathVariable Long id) {
+    public ResponseEntity<DeliveryAssignmentResponse> acceptOrder(@PathVariable Long id) {
         return ResponseEntity.ok(courierService.acceptAssignment(id));
     }
 
     @PatchMapping("/{id}/complete")
-    public ResponseEntity<DeliveryAssignment> completeOrder(@PathVariable Long id) {
+    public ResponseEntity<DeliveryAssignmentResponse> completeOrder(@PathVariable Long id) {
         return ResponseEntity.ok(courierService.completeAssignment(id));
     }
 }

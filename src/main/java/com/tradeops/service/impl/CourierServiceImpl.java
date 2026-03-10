@@ -3,10 +3,13 @@ package com.tradeops.service.impl;
 import com.tradeops.annotation.Auditable;
 import com.tradeops.exceptions.InvalidStatusTransitionException;
 import com.tradeops.exceptions.ResourceNotFoundException;
+import com.tradeops.mapper.DeliveryAssignmentMapper;
 import com.tradeops.model.entity.*;
+import com.tradeops.model.response.DeliveryAssignmentResponse;
 import com.tradeops.repo.CourierUserRepo;
 import com.tradeops.repo.DeliveryAssignmentRepo;
 import com.tradeops.repo.OrderRepo;
+import com.tradeops.service.CourierService;
 import com.tradeops.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -19,12 +22,14 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class CourierServiceImpl {
+public class CourierServiceImpl implements CourierService {
 
     private final DeliveryAssignmentRepo assignmentRepo;
     private final CourierUserRepo courierUserRepo;
     private final OrderRepo orderRepo;
     private final InventoryService inventoryService;
+    private final DeliveryAssignmentMapper assignmentMapper;
+
 
     private CourierUser getCurrentCourier() {
         String phone = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -32,16 +37,21 @@ public class CourierServiceImpl {
                 .orElseThrow(() -> new AccessDeniedException("Courier profile not found"));
     }
 
-    public List<DeliveryAssignment> getActiveAssignments() {
+    @Override
+    public List<DeliveryAssignmentResponse> getActiveAssignments() {
         CourierUser courier = getCurrentCourier();
-        return assignmentRepo.findByCourierIdAndStatusInOrderByIdDesc(
+        List<DeliveryAssignment> dAssignment = assignmentRepo.findByCourierIdAndStatusInOrderByIdDesc(
                 courier.getId(),
                 List.of(DeliveryStatus.ASSIGNED, DeliveryStatus.ON_PROGRESS));
+
+
+        return assignmentMapper.toDeliveryAssignmentResponseList(dAssignment);
     }
 
     @Transactional
     @Auditable(action = "DELIVERY_ACCEPTED", entityType = "DELIVERY_ASSIGNMENT")
-    public DeliveryAssignment acceptAssignment(Long assignmentId) {
+    @Override
+    public DeliveryAssignmentResponse acceptAssignment(Long assignmentId) {
         CourierUser courier = getCurrentCourier();
         DeliveryAssignment assignment = assignmentRepo.findByIdAndCourierId(assignmentId, courier.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found or does not belong to you"));
@@ -57,12 +67,14 @@ public class CourierServiceImpl {
         order.setStatus(OrderStatus.ON_PROGRESS);
         orderRepo.save(order);
 
-        return assignmentRepo.save(assignment);
+        assignmentRepo.save(assignment);
+        return assignmentMapper.toDeliveryAssignmentResponse(assignment);
     }
 
     @Transactional
     @Auditable(action = "DELIVERY_COMPLETED", entityType = "DELIVERY_ASSIGNMENT")
-    public DeliveryAssignment completeAssignment(Long assignmentId) {
+    @Override
+    public DeliveryAssignmentResponse completeAssignment(Long assignmentId) {
         CourierUser courier = getCurrentCourier();
         DeliveryAssignment assignment = assignmentRepo.findByIdAndCourierId(assignmentId, courier.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
@@ -81,6 +93,8 @@ public class CourierServiceImpl {
             inventoryService.fulfillStock(line.getProduct().getId(), line.getQty());
         }
 
-        return assignmentRepo.save(assignment);
+        assignmentRepo.save(assignment);
+
+        return assignmentMapper.toDeliveryAssignmentResponse(assignment);
     }
 }

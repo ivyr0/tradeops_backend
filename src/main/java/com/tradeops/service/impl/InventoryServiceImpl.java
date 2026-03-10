@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tradeops.annotation.Auditable;
 import com.tradeops.exceptions.InsufficientStockException;
 import com.tradeops.exceptions.ResourceNotFoundException;
+import com.tradeops.mapper.InventoryItemMapper;
 import com.tradeops.model.entity.InventoryItem;
 import com.tradeops.model.entity.Product;
+import com.tradeops.model.response.InventoryItemResponse;
 import com.tradeops.repo.InventoryItemRepo;
 import com.tradeops.repo.ProductRepo;
 import com.tradeops.service.InventoryService;
@@ -23,17 +25,20 @@ public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryItemRepo inventoryItemRepo;
     private final ProductRepo productRepo;
+    private final InventoryItemMapper inventoryItemMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<InventoryItem> getInventoryList(Pageable pageable) {
-        return inventoryItemRepo.findAll(pageable);
+    public Page<InventoryItemResponse> getInventoryList(Pageable pageable) {
+        Page<InventoryItem> inventoryItems = inventoryItemRepo.findAll(pageable);
+
+        return inventoryItems.map(inventoryItemMapper::toInventoryItemResponse);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @Auditable(action = "INVENTORY_ADJUST", entityType = "INVENTORY_ITEM")
-    public InventoryItem adjustStock(Long productId, Integer newQtyOnHand) {
+    public InventoryItemResponse adjustStock(Long productId, Integer newQtyOnHand) {
         if (newQtyOnHand < 0) {
             throw new IllegalArgumentException("Quantity on hand cannot be negative");
         }
@@ -51,13 +56,16 @@ public class InventoryServiceImpl implements InventoryService {
                 });
 
         item.setQtyOnHand(newQtyOnHand);
-        return inventoryItemRepo.save(item);
+
+        inventoryItemRepo.save(item);
+
+        return inventoryItemMapper.toInventoryItemResponse(item);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @Auditable(action = "STOCK_RESERVED", entityType = "INVENTORY_ITEM")
-    public InventoryItem reserveStock(Long productId, Integer qtyToReserve) {
+    public InventoryItemResponse reserveStock(Long productId, Integer qtyToReserve) {
         InventoryItem item = inventoryItemRepo.findByProductId(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory not found"));
 
@@ -67,19 +75,23 @@ public class InventoryServiceImpl implements InventoryService {
         }
 
         item.setQtyReserved(item.getQtyReserved() + qtyToReserve);
-        return inventoryItemRepo.save(item);
+        inventoryItemRepo.save(item);
+
+        return inventoryItemMapper.toInventoryItemResponse(item);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @Auditable(action = "STOCK_RELEASED", entityType = "INVENTORY_ITEM")
-    public InventoryItem releaseStock(Long productId, Integer qtyToRelease) {
+    public InventoryItemResponse releaseStock(Long productId, Integer qtyToRelease) {
         InventoryItem item = inventoryItemRepo.findByProductId(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory not found"));
 
         int newReserved = Math.max(0, item.getQtyReserved() - qtyToRelease);
         item.setQtyReserved(newReserved);
-        return inventoryItemRepo.save(item);
+        inventoryItemRepo.save(item);
+
+        return inventoryItemMapper.toInventoryItemResponse(item);
     }
 
     @Override

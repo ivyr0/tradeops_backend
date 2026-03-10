@@ -19,15 +19,6 @@ import org.springframework.web.bind.annotation.*;
 public class AdminOrdersController {
 
     private final OrderService orderService;
-    private final OrderRepo orderRepo;
-
-//    POST /api/v1/storefront/orders
-//    GET  /api/v1/trader/orders
-//    GET  /api/v1/admin/orders
-//    PATCH /api/v1/admin/orders/{id}/status
-//    POST /api/v1/admin/orders/{id}/assign
-//    POST /api/v1/admin/orders/{id}/unassign
-
 
     // FR-025: Просмотр всех заказов компании (с фильтрацией)
     @GetMapping
