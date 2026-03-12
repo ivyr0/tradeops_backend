@@ -1,6 +1,7 @@
 package com.tradeops;
 
 import com.tradeops.model.entity.*;
+import com.tradeops.model.response.DeliveryAssignmentResponse;
 import com.tradeops.repo.*;
 import com.tradeops.service.impl.CourierServiceImpl;
 import com.tradeops.service.impl.DispatcherServiceImpl;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @SpringBootTest
@@ -41,7 +43,7 @@ public class EpicB6DispatchAcceptanceTest {
     void setUp() {
         Product p = new Product();
         p.setName("Test Cargo");
-        p.setBasePrice(100.0);
+        p.setBasePrice(BigDecimal.valueOf(100.0));
         p.setSku("CARGO-1");
         p = productRepo.save(p);
 
@@ -72,9 +74,9 @@ public class EpicB6DispatchAcceptanceTest {
     @Test
     @WithMockUser(username = "dispatcher", authorities = "ROLE_DISPATCHER")
     void dispatcherCanAssignOrder() {
-        DeliveryAssignment assignment = dispatcherService.assignCourierToOrder(testOrder.getId(), testCourier.getId());
+        DeliveryAssignmentResponse assignment = dispatcherService.assignCourierToOrder(testOrder.getId(), testCourier.getId());
 
-        Assertions.assertEquals(DeliveryStatus.ASSIGNED, assignment.getStatus());
+        Assertions.assertEquals(DeliveryStatus.ASSIGNED, assignment.status());
         Assertions.assertEquals(OrderStatus.ASSIGNED, orderRepo.findById(testOrder.getId()).get().getStatus());
     }
 
@@ -90,16 +92,16 @@ public class EpicB6DispatchAcceptanceTest {
         testOrder.setStatus(OrderStatus.ASSIGNED);
         orderRepo.save(testOrder);
 
-        List<DeliveryAssignment> feed = courierService.getActiveAssignments();
+        List<DeliveryAssignmentResponse> feed = courierService.getActiveAssignments();
         Assertions.assertEquals(1, feed.size());
 
-        DeliveryAssignment accepted = courierService.acceptAssignment(assignment.getId());
-        Assertions.assertEquals(DeliveryStatus.ON_PROGRESS, accepted.getStatus());
+        DeliveryAssignmentResponse accepted = courierService.acceptAssignment(assignment.getId());
+        Assertions.assertEquals(DeliveryStatus.ON_PROGRESS, accepted.status());
         Assertions.assertEquals(OrderStatus.ON_PROGRESS, orderRepo.findById(testOrder.getId()).get().getStatus());
-        Assertions.assertNotNull(accepted.getAcceptedAt());
+        Assertions.assertNotNull(accepted.acceptedAt());
 
-        DeliveryAssignment completed = courierService.completeAssignment(assignment.getId());
-        Assertions.assertEquals(DeliveryStatus.COMPLETED, completed.getStatus());
+        DeliveryAssignmentResponse completed = courierService.completeAssignment(assignment.getId());
+        Assertions.assertEquals(DeliveryStatus.COMPLETED, completed.status());
         Assertions.assertEquals(OrderStatus.COMPLETED, orderRepo.findById(testOrder.getId()).get().getStatus());
 
         InventoryItem dbItem = inventoryItemRepo.findById(testInventory.getId()).get();

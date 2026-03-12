@@ -7,5 +7,4 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface TraderUserMapper {
-    @Mapping(source = "role.name", target = "role")
     TraderUserResponse toTraderUserResponse(TraderUser traderUser);}
