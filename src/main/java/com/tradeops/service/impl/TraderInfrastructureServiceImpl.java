@@ -17,6 +17,8 @@ import com.tradeops.repo.RoleRepo;
 import com.tradeops.repo.TraderRepo;
 import com.tradeops.repo.TraderUserRepo;
 import com.tradeops.repo.UserEntityRepo;
+import com.tradeops.service.PackageBuildService;
+import com.tradeops.util.AesEncryptionUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -40,6 +42,8 @@ public class TraderInfrastructureServiceImpl {
     private final PasswordEncoder passwordEncoder;
     private final TraderMapper traderMapper;
     private final TraderUserMapper traderUserMapper;
+    private final AesEncryptionUtil aesEncryptionUtil;
+    private final PackageBuildService packageBuildService;
 
     @Transactional
     @Auditable(action = "THEME_UPDATED", entityType = "TRADER")
@@ -88,22 +92,38 @@ public class TraderInfrastructureServiceImpl {
         return traderUserMapper.toTraderUserResponse(traderUser);
     }
 
+    @Transactional
     @Auditable(action = "SSL_UPLOADED", entityType = "TRADER")
-    public void uploadSslCertificate(Long traderId) {
-        log.info("SSL Certificate uploaded and applied for Trader ID: {}", traderId);
+    public void uploadSslCertificate(Long traderId, org.springframework.web.multipart.MultipartFile certFile, org.springframework.web.multipart.MultipartFile keyFile) {
+        Trader trader = traderRepo.findById(traderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trader not found"));
+
+        try {
+            String sslDir = "/opt/tradeops/traders/" + trader.getDomain() + "/ssl/";
+            java.io.File dir = new java.io.File(sslDir);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+
+            String certPath = sslDir + "fullchain.pem";
+            java.nio.file.Files.write(java.nio.file.Paths.get(certPath), certFile.getBytes());
+
+            String privateKeyContent = new String(keyFile.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            String encryptedKey = aesEncryptionUtil.encrypt(privateKeyContent);
+
+            trader.setSslCertPath(certPath);
+            trader.setSslKeyDbEncrypted(encryptedKey);
+            traderRepo.save(trader);
+
+            log.info("SSL Certificate uploaded and applied for Trader ID: {}", traderId);
+        } catch (Exception e) {
+            log.error("Failed to process SSL certificates", e);
+            throw new RuntimeException("Failed to process SSL certificates", e);
+        }
     }
 
-    @Async
     @Auditable(action = "FRONTEND_BUILD_TRIGGERED", entityType = "TRADER")
     public CompletableFuture<String> triggerFrontendBuild(Long traderId) {
-        log.info("Starting frontend build for Trader ID: {}...", traderId);
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return CompletableFuture.completedFuture("BUILD_FAILED");
-        }
-        log.info("Frontend build COMPLETED for Trader ID: {}", traderId);
-        return CompletableFuture.completedFuture("BUILD_SUCCESS");
+        return packageBuildService.triggerBuild(traderId);
     }
 }

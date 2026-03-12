@@ -10,5 +10,6 @@ public record ErrorDetail(
         String code,
         String message,
         Map<String, List<String>> fields,
+        @com.fasterxml.jackson.annotation.JsonProperty("trace_id")
         String traceId
 ){}

@@ -48,6 +48,12 @@ public class Trader {
     @Column(name = "status")
     private TraderStatus status;
 
+    @Column(name = "ssl_cert_path")
+    private String sslCertPath;
+
+    @Column(name = "ssl_key_db_encrypted")
+    private String SslKeyDbEncrypted;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
