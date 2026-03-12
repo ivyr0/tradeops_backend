@@ -3,6 +3,7 @@ package com.tradeops.controller;
 import com.tradeops.model.entity.TraderUser;
 import com.tradeops.model.request.TraderRequests.CreatePersonnelRequest;
 import com.tradeops.model.request.TraderRequests.ThemeConfigRequest;
+import com.tradeops.model.response.TraderUserResponse;
 import com.tradeops.service.impl.TraderInfrastructureServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ public class TraderInfrastructureController {
     private final TraderInfrastructureServiceImpl infrastructureService;
 
     @PostMapping("/personnel")
-    public ResponseEntity<TraderUser> addPersonnel(
+    public ResponseEntity<TraderUserResponse> addPersonnel(
             @PathVariable Long traderId,
             @Valid @RequestBody CreatePersonnelRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(infrastructureService.addPersonnel(traderId, request));

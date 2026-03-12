@@ -1,9 +1,11 @@
 package com.tradeops.controller;
 
 import com.tradeops.model.entity.Order;
+import com.tradeops.model.request.OrdersRequest;
 import com.tradeops.model.response.OrderResponse;
 import com.tradeops.repo.OrderRepo;
 import com.tradeops.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,9 +24,9 @@ public class TraderOrdersController {
     // FR-024: Владелец магазина видит ТОЛЬКО свои заказы (Tenant isolation)
     @GetMapping
     public ResponseEntity<Page<OrderResponse>> getTraderOrders(
-            @RequestParam(name = "trader_id") Long traderId,
+            @RequestBody @Valid OrdersRequest request,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        return ResponseEntity.ok(orderService.getAllOrders(traderId, pageable));
+        return ResponseEntity.ok(orderService.getAllOrders(request.traderId(), pageable));
     }
 }

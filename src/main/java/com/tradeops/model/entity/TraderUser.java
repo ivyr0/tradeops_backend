@@ -25,8 +25,9 @@ public class TraderUser {
     @JoinColumn(name = "trader_id", nullable = false)
     private Trader trader;
 
-    @Column(nullable = false)
-    private String role;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 
     @Column(nullable = false)
     private String name;

@@ -3,12 +3,16 @@ package com.tradeops.service.impl;
 import com.tradeops.annotation.Auditable;
 import com.tradeops.exceptions.ResourceNotFoundException;
 import com.tradeops.exceptions.UserAlreadyExistsException;
+import com.tradeops.mapper.TraderMapper;
+import com.tradeops.mapper.TraderUserMapper;
 import com.tradeops.model.entity.Role;
 import com.tradeops.model.entity.Trader;
 import com.tradeops.model.entity.TraderUser;
 import com.tradeops.model.entity.UserEntity;
 import com.tradeops.model.request.TraderRequests.CreatePersonnelRequest;
 import com.tradeops.model.request.TraderRequests.ThemeConfigRequest;
+import com.tradeops.model.response.TraderResponse;
+import com.tradeops.model.response.TraderUserResponse;
 import com.tradeops.repo.RoleRepo;
 import com.tradeops.repo.TraderRepo;
 import com.tradeops.repo.TraderUserRepo;
@@ -34,19 +38,21 @@ public class TraderInfrastructureServiceImpl {
     private final UserEntityRepo userEntityRepo;
     private final RoleRepo roleRepo;
     private final PasswordEncoder passwordEncoder;
+    private final TraderMapper traderMapper;
+    private final TraderUserMapper traderUserMapper;
 
     @Transactional
     @Auditable(action = "THEME_UPDATED", entityType = "TRADER")
-    public Trader updateTheme(Long traderId, ThemeConfigRequest request) {
+    public TraderResponse updateTheme(Long traderId, ThemeConfigRequest request) {
         Trader trader = traderRepo.findById(traderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Trader not found"));
         trader.setThemeConfigJson(request.themeConfigJson());
-        return traderRepo.save(trader);
+        return traderMapper.toTraderResponse(traderRepo.save(trader));
     }
 
     @Transactional
     @Auditable(action = "PERSONNEL_ADDED", entityType = "TRADER_USER")
-    public TraderUser addPersonnel(Long traderId, CreatePersonnelRequest request) {
+    public TraderUserResponse addPersonnel(Long traderId, CreatePersonnelRequest request) {
         Trader trader = traderRepo.findById(traderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Trader not found"));
 
@@ -56,6 +62,10 @@ public class TraderInfrastructureServiceImpl {
 
         Role role = roleRepo.findByName(request.role())
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
+
+        if (!role.getName().startsWith("ROLE_TRADER_")) {
+            throw new IllegalArgumentException("Invalid role for a Trader User");
+        }
 
         UserEntity userEntity = new UserEntity();
         userEntity.setUsername(request.email());
@@ -71,10 +81,11 @@ public class TraderInfrastructureServiceImpl {
         traderUser.setTrader(trader);
         traderUser.setName(request.name());
         traderUser.setEmail(request.email());
-        traderUser.setRole(request.role());
+        traderUser.setRole(role);
         traderUser.setPasswordHash(userEntity.getPassword());
 
-        return traderUserRepo.save(traderUser);
+        traderUserRepo.save(traderUser);
+        return traderUserMapper.toTraderUserResponse(traderUser);
     }
 
     @Auditable(action = "SSL_UPLOADED", entityType = "TRADER")
