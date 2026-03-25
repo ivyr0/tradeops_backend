@@ -1,5 +1,8 @@
 package com.tradeops.service.impl;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
 import com.tradeops.annotation.Auditable;
 import com.tradeops.exceptions.ResourceNotFoundException;
 import com.tradeops.model.entity.PackageArtifact;
@@ -16,7 +19,6 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
@@ -37,6 +39,49 @@ public class PackageBuildServiceImpl implements PackageBuildService {
 
     @Value("${tradeops.main.api.baseUrl:https://api.tradeops.kg}")
     private String mainApiBaseUrl;
+
+    @Override
+    public byte[] generateTraderPackage(Long traderId) throws IOException {
+        log.info("Generating direct package ZIP for Trader ID: {}", traderId);
+        Trader trader = traderRepo.findById(traderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trader not found"));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            // 1. Generate the .env file specific to this trader
+            String envContent = generateEnvContent(trader);
+            addStringToZip(zos, ".env", envContent);
+
+            // 2. Generate the docker-compose.yml to run the Python app
+            String dockerComposeContent = generateDockerComposeContent();
+            addStringToZip(zos, "docker-compose.yml", dockerComposeContent);
+
+        } catch (Exception e) {
+            log.error("Failed to generate package for Trader ID: {}", traderId, e);
+            throw new IOException("Failed to generate package ZIP", e);
+        }
+        return baos.toByteArray();
+    }
+
+    private String generateEnvContent(Trader trader) {
+        return "PROJECT_NAME=\"TradeOps Store - " + trader.getDisplayName() + "\"\n" +
+                "TRADER_ID=" + trader.getId() + "\n" +
+                "BACKEND_URL=\"" + mainApiBaseUrl + "\"\n" +
+                "DATABASE_URL=\"sqlite:///./trader.db\"\n" +
+                "SECRET_KEY=\"" + UUID.randomUUID().toString() + "\"\n";
+    }
+
+    private String generateDockerComposeContent() {
+        return "version: '3.8'\n" +
+                "services:\n" +
+                "  trader-cms:\n" +
+                "    image: tradeops/trader-cms:latest\n" +
+                "    ports:\n" +
+                "      - \"8000:8000\"\n" +
+                "    env_file:\n" +
+                "      - .env\n" +
+                "    restart: always\n";
+    }
 
     @Override
     @Async

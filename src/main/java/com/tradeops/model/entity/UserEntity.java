@@ -34,11 +34,7 @@ public class UserEntity {
     private String password;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id")
-    )
+    @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"))
     private List<Role> roles;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -53,16 +49,32 @@ public class UserEntity {
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean active = true;
 
-    @Column(name = "approved", nullable = false,  columnDefinition = "boolean default false")
+    @Column(name = "approved", nullable = false, columnDefinition = "boolean default false")
     private Boolean approved = false;
 
     @Column(name = "rejected", nullable = false, columnDefinition = "boolean default false")
     private Boolean rejected = false;
 
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (updatedAt == null) {
+            updatedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     public Boolean isApproved() {
         return approved;
     }
-    public Boolean isRejected(){
+
+    public Boolean isRejected() {
         return rejected;
     }
 }
