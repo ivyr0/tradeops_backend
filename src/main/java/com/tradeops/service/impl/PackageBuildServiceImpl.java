@@ -62,7 +62,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             Files.writeString(tempDir.resolve(".env"), envContent);
 
             // 2. Generate the docker-compose.yml to run the Python app
-            String dockerComposeContent = generateDockerComposeContent();
+            String dockerComposeContent = generateDockerCompose(trader);
             Files.writeString(tempDir.resolve("docker-compose.yml"), dockerComposeContent);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -84,17 +84,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
                 "SECRET_KEY=\"" + UUID.randomUUID().toString() + "\"\n";
     }
 
-    private String generateDockerComposeContent() {
-        return "version: '3.8'\n" +
-                "services:\n" +
-                "  trader-cms:\n" +
-                "    image: tradeops/trader-cms:latest\n" +
-                "    ports:\n" +
-                "      - \"8000:8000\"\n" +
-                "    env_file:\n" +
-                "      - .env\n" +
-                "    restart: always\n";
-    }
+
 
     @Override
     @Async
@@ -214,48 +204,104 @@ public class PackageBuildServiceImpl implements PackageBuildService {
     }
 
     private String generateDockerCompose(Trader trader) {
-        return "version: '3.8'\n" +
-                "services:\n" +
-                "  postgres:\n" +
-                "    image: postgres:15-alpine\n" +
-                "    container_name: trader_" + trader.getId() + "_db\n" +
-                "    environment:\n" +
-                "      POSTGRES_DB: shop_data\n" +
-                "      POSTGRES_USER: postgres\n" +
-                "      POSTGRES_PASSWORD: postgres\n" +
-                "    volumes:\n" +
-                "      - postgres_data:/var/lib/postgresql/data\n" +
-                "    healthcheck:\n" +
-                "      test: [\"CMD-SHELL\", \"pg_isready -U postgres\"]\n" +
-                "      interval: 5s\n" +
-                "      timeout: 5s\n" +
-                "      retries: 5\n" +
-                "    restart: always\n\n" +
-                "  cms:\n" +
-                "    image: tradeops/trader-cms:latest # Укажите здесь реальный Docker-образ вашего CMS\n" +
-                "    container_name: trader_" + trader.getId() + "_cms\n" +
-                "    env_file: .env\n" +
-                "    ports:\n" +
-                "      - \"8000:8000\"\n" +
-                "    depends_on:\n" +
-                "      postgres:\n" +
-                "        condition: service_healthy\n" +
-                "    volumes:\n" +
-                "      - static_uploads:/app/static/uploads\n" +
-                "    restart: always\n\n" +
-                "  shop:\n" +
-                "    image: tradeops/trader-shop:latest # Укажите здесь реальный Docker-образ вашей Витрины\n" +
-                "    container_name: trader_" + trader.getId() + "_shop\n" +
-                "    env_file: .env\n" +
-                "    ports:\n" +
-                "      - \"8001:8001\"\n" +
-                "    depends_on:\n" +
-                "      postgres:\n" +
-                "        condition: service_healthy\n" +
-                "    restart: always\n\n" +
-                "volumes:\n" +
-                "  postgres_data:\n" +
-                "  static_uploads:\n";
+        return """
+# =============================================================================
+# SHOP TEMPLATE - Docker Compose Configuration
+# =============================================================================
+# Before running:
+# 1. Copy .env.example to .env
+# 2. Configure SHOP_NAME, TRADER_ID, and other settings
+# 3. Start main backend first: cd ../online_shop-backend && docker compose up -d
+# 4. Run: docker compose up --build
+
+services:
+  # PostgreSQL Database (local for shop data)
+  postgres:
+    image: postgres:15-alpine
+    container_name: ${SHOP_NAME:-shop}-db
+    environment:
+      POSTGRES_DB: shop_data
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # CMS (Admin Panel for Traders)
+  cms:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ${SHOP_NAME:-shop}-cms
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/shop_data
+      ADMIN_API_BASE_URL: ${ADMIN_API_BASE_URL:-http://shopbackend:8080}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-secret-key-in-production}
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY:-change-this-session-secret-in-production}
+      SHOP_NAME: ${SHOP_NAME:-My Shop}
+      TRADER_ID: ${TRADER_ID:-1}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+    ports:
+      - "${CMS_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - static_uploads:/app/static/uploads
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - default
+      - backend
+
+  # Shop (Customer Storefront)
+  shop:
+    build:
+      context: ./shop
+      dockerfile: Dockerfile
+    container_name: ${SHOP_NAME:-shop}-storefront
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/shop_data
+      ADMIN_API_BASE_URL: ${ADMIN_API_BASE_URL:-http://shopbackend:8080}
+      JWT_SECRET_KEY: ${SHOP_JWT_SECRET_KEY:-change-this-shop-secret-key}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY:-change-this-session-secret-key}
+      TRADER_ID: ${TRADER_ID:-1}
+      SHOP_NAME: ${SHOP_NAME:-My Shop}
+    ports:
+      - "${SHOP_PORT:-8001}:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      cms:
+        condition: service_started
+    volumes:
+      - ./shop:/app
+      - ./app:/trader-cms/app:ro
+    networks:
+      - default
+      - backend
+
+volumes:
+  postgres_data:
+  static_uploads:
+
+networks:
+  default:
+  backend:
+    external: true
+    name: online_shop-backend_default
+""";
     }
 
     private String generateDeployScript() {
