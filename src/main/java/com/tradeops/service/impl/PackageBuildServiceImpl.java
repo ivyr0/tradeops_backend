@@ -17,14 +17,21 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.nio.charset.StandardCharsets;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+import org.springframework.util.FileSystemUtils;
+import org.springframework.util.ResourceUtils;
 import java.util.concurrent.CompletableFuture;
-import com.tradeops.service.builder.ZipPackageBuilder;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -46,16 +53,27 @@ public class PackageBuildServiceImpl implements PackageBuildService {
         Trader trader = traderRepo.findById(traderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Trader not found"));
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ZipPackageBuilder builder = new ZipPackageBuilder(baos)) {
-            builder.withTemplate("templates/trader-cms.zip")
-                   .withFile(".env", generateEnvContent(trader))
-                   .withFile("docker-compose.yml", generateDockerComposeContent());
+        Path tempDir = Files.createTempDirectory("trader-pkg-");
+        try {
+            copyTemplateToTempDir(tempDir);
+
+            // 1. Generate the .env file specific to this trader
+            String envContent = generateEnvContent(trader);
+            Files.writeString(tempDir.resolve(".env"), envContent);
+
+            // 2. Generate the docker-compose.yml to run the Python app
+            String dockerComposeContent = generateDockerComposeContent();
+            Files.writeString(tempDir.resolve("docker-compose.yml"), dockerComposeContent);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            zipDirectory(tempDir, baos);
+            return baos.toByteArray();
         } catch (Exception e) {
             log.error("Failed to generate package for Trader ID: {}", traderId, e);
             throw new IOException("Failed to generate package ZIP", e);
+        } finally {
+            FileSystemUtils.deleteRecursively(tempDir);
         }
-        return baos.toByteArray();
     }
 
     private String generateEnvContent(Trader trader) {
@@ -106,13 +124,19 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             String dockerComposeContent = generateDockerCompose(trader);
             String deployScriptContent = generateDeployScript();
 
-            try (FileOutputStream fos = new FileOutputStream(zipFilePath.toFile());
-                 ZipPackageBuilder builder = new ZipPackageBuilder(fos)) {
-                
-                builder.withTemplate("templates/trader-cms.zip")
-                       .withFile(".env", envFileContent)
-                       .withFile("docker-compose.yml", dockerComposeContent)
-                       .withFile("deploy.sh", deployScriptContent);
+            Path tempDir = Files.createTempDirectory("trader-pkg-build-");
+            try {
+                copyTemplateToTempDir(tempDir);
+
+                Files.writeString(tempDir.resolve(".env"), envFileContent);
+                Files.writeString(tempDir.resolve("docker-compose.yml"), dockerComposeContent);
+                Files.writeString(tempDir.resolve("deploy.sh"), deployScriptContent);
+
+                try (FileOutputStream fos = new FileOutputStream(zipFilePath.toFile())) {
+                    zipDirectory(tempDir, fos);
+                }
+            } finally {
+                FileSystemUtils.deleteRecursively(tempDir);
             }
 
             artifact.setArtifactFilePath(zipFilePath.toAbsolutePath().toString());
@@ -130,7 +154,40 @@ public class PackageBuildServiceImpl implements PackageBuildService {
         }
     }
 
+    private void copyTemplateToTempDir(Path tempDir) {
+        try {
+            File templateDir;
+            try {
+                templateDir = ResourceUtils.getFile("classpath:templates/trader-cms");
+            } catch (FileNotFoundException e) {
+                templateDir = new File("src/main/resources/templates/trader-cms");
+            }
+            if (templateDir.exists() && templateDir.isDirectory()) {
+                FileSystemUtils.copyRecursively(templateDir, tempDir.toFile());
+            } else {
+                log.warn("Template directory not found, using empty directory.");
+            }
+        } catch (IOException e) {
+            log.error("Failed to copy template directory", e);
+        }
+    }
 
+    private void zipDirectory(Path sourceDir, OutputStream os) throws IOException {
+        try (ZipOutputStream zos = new ZipOutputStream(os);
+             Stream<Path> paths = Files.walk(sourceDir)) {
+             
+            paths.filter(path -> !Files.isDirectory(path)).forEach(path -> {
+                ZipEntry zipEntry = new ZipEntry(sourceDir.relativize(path).toString().replace("\\", "/"));
+                try {
+                    zos.putNextEntry(zipEntry);
+                    Files.copy(path, zos);
+                    zos.closeEntry();
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to zip file " + path, e);
+                }
+            });
+        }
+    }
 
     private String generateEnvFile(Trader trader) {
         // Генерируем уникальные секретные ключи для сессий и JWT
