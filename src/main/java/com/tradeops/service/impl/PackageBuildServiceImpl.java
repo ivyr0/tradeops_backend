@@ -55,7 +55,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
 
         Path tempDir = Files.createTempDirectory("trader-pkg-");
         try {
-            copyTemplateToTempDir(tempDir);
+            cloneTemplateToTempDir(tempDir);
 
             // 1. Generate the .env file specific to this trader
             String envContent = generateEnvContent(trader);
@@ -126,7 +126,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
 
             Path tempDir = Files.createTempDirectory("trader-pkg-build-");
             try {
-                copyTemplateToTempDir(tempDir);
+                cloneTemplateToTempDir(tempDir);
 
                 Files.writeString(tempDir.resolve(".env"), envFileContent);
                 Files.writeString(tempDir.resolve("docker-compose.yml"), dockerComposeContent);
@@ -154,21 +154,27 @@ public class PackageBuildServiceImpl implements PackageBuildService {
         }
     }
 
-    private void copyTemplateToTempDir(Path tempDir) {
+    private void cloneTemplateToTempDir(Path tempDir) {
         try {
-            File templateDir;
-            try {
-                templateDir = ResourceUtils.getFile("classpath:templates/trader-cms");
-            } catch (FileNotFoundException e) {
-                templateDir = new File("src/main/resources/templates/trader-cms");
-            }
-            if (templateDir.exists() && templateDir.isDirectory()) {
-                FileSystemUtils.copyRecursively(templateDir, tempDir.toFile());
+            log.info("Cloning trader-cms repository into temporary directory...");
+            ProcessBuilder pb = new ProcessBuilder(
+                    "git", "clone", "https://github.com/user31133/trader-cms.git", "."
+            );
+            pb.directory(tempDir.toFile());
+            Process process = pb.start();
+            int exitCode = process.waitFor();
+            
+            if (exitCode != 0) {
+                log.error("Failed to clone repository. Exit code: {}", exitCode);
             } else {
-                log.warn("Template directory not found, using empty directory.");
+                log.info("Successfully cloned trader-cms repository.");
             }
-        } catch (IOException e) {
-            log.error("Failed to copy template directory", e);
+            
+            // Clean up the .git directory so it doesn't get zipped
+            FileSystemUtils.deleteRecursively(tempDir.resolve(".git"));
+        } catch (IOException | InterruptedException e) {
+            log.error("Exception occurred while cloning repository", e);
+            Thread.currentThread().interrupt();
         }
     }
 
