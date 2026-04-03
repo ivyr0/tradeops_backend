@@ -23,10 +23,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
-import org.springframework.core.io.ClassPathResource;
+import java.util.concurrent.CompletableFuture;
+import com.tradeops.service.builder.ZipPackageBuilder;
 
 @Slf4j
 @Service
@@ -49,17 +47,10 @@ public class PackageBuildServiceImpl implements PackageBuildService {
                 .orElseThrow(() -> new ResourceNotFoundException("Trader not found"));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
-            copyTemplateZipEntries(zos);
-
-            // 1. Generate the .env file specific to this trader
-            String envContent = generateEnvContent(trader);
-            addStringToZip(zos, ".env", envContent);
-
-            // 2. Generate the docker-compose.yml to run the Python app
-            String dockerComposeContent = generateDockerComposeContent();
-            addStringToZip(zos, "docker-compose.yml", dockerComposeContent);
-
+        try (ZipPackageBuilder builder = new ZipPackageBuilder(baos)) {
+            builder.withTemplate("templates/trader-cms.zip")
+                   .withFile(".env", generateEnvContent(trader))
+                   .withFile("docker-compose.yml", generateDockerComposeContent());
         } catch (Exception e) {
             log.error("Failed to generate package for Trader ID: {}", traderId, e);
             throw new IOException("Failed to generate package ZIP", e);
@@ -116,13 +107,12 @@ public class PackageBuildServiceImpl implements PackageBuildService {
             String deployScriptContent = generateDeployScript();
 
             try (FileOutputStream fos = new FileOutputStream(zipFilePath.toFile());
-                    ZipOutputStream zos = new ZipOutputStream(fos)) {
-
-                copyTemplateZipEntries(zos);
-
-                addStringToZip(zos, ".env", envFileContent);
-                addStringToZip(zos, "docker-compose.yml", dockerComposeContent);
-                addStringToZip(zos, "deploy.sh", deployScriptContent);
+                 ZipPackageBuilder builder = new ZipPackageBuilder(fos)) {
+                
+                builder.withTemplate("templates/trader-cms.zip")
+                       .withFile(".env", envFileContent)
+                       .withFile("docker-compose.yml", dockerComposeContent)
+                       .withFile("deploy.sh", deployScriptContent);
             }
 
             artifact.setArtifactFilePath(zipFilePath.toAbsolutePath().toString());
@@ -140,43 +130,7 @@ public class PackageBuildServiceImpl implements PackageBuildService {
         }
     }
 
-    private void copyTemplateZipEntries(ZipOutputStream zos) throws IOException {
-        ClassPathResource resource = new ClassPathResource("templates/trader-cms.zip");
-        if (!resource.exists()) {
-             log.warn("Template zip 'templates/trader-cms.zip' not found, creating archive only with generated files.");
-             return;
-        }
-        
-        try (ZipInputStream zis = new ZipInputStream(resource.getInputStream())) {
-            ZipEntry sourceEntry;
-            byte[] buffer = new byte[8192];
-            while ((sourceEntry = zis.getNextEntry()) != null) {
-                if (sourceEntry.getName().equals(".env") || 
-                    sourceEntry.getName().equals("docker-compose.yml") || 
-                    sourceEntry.getName().equals("deploy.sh")) {
-                    zis.closeEntry();
-                    continue;
-                }
-                
-                ZipEntry targetEntry = new ZipEntry(sourceEntry.getName());
-                zos.putNextEntry(targetEntry);
-                
-                int len;
-                while ((len = zis.read(buffer)) > 0) {
-                    zos.write(buffer, 0, len);
-                }
-                zos.closeEntry();
-                zis.closeEntry();
-            }
-        }
-    }
 
-    private void addStringToZip(ZipOutputStream zos, String fileName, String content) throws Exception {
-        ZipEntry entry = new ZipEntry(fileName);
-        zos.putNextEntry(entry);
-        zos.write(content.getBytes(StandardCharsets.UTF_8));
-        zos.closeEntry();
-    }
 
     private String generateEnvFile(Trader trader) {
         // Генерируем уникальные секретные ключи для сессий и JWT
