@@ -4,6 +4,7 @@ import com.tradeops.exceptions.ResourceNotFoundException;
 import com.tradeops.mapper.CategoryMapper;
 import com.tradeops.model.entity.Category;
 import com.tradeops.model.request.CategoryRequest;
+import com.tradeops.model.request.EditCategoryRequest;
 import com.tradeops.model.response.CategoryResponse;
 import com.tradeops.repo.CategoryRepo;
 import com.tradeops.repo.TraderRepo;
@@ -22,6 +23,17 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepo categoryRepo;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public CategoryResponse editCategory(EditCategoryRequest request, Long id) {
+        Category category = categoryRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+        category.setName(request.name);
+
+        return cm.toCategoryResponse(category);
+    }
+
     private final TraderRepo tr;
     private final CategoryMapper cm;
 

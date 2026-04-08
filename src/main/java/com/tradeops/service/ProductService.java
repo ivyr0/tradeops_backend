@@ -2,6 +2,7 @@ package com.tradeops.service;
 
 import com.tradeops.model.request.CreateProductRequest;
 import com.tradeops.model.request.DeleteProductRequest;
+import com.tradeops.model.request.EditProductRequest;
 import com.tradeops.model.response.ProductResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,5 +27,7 @@ public interface ProductService {
     Page<ProductResponse> getAllProducts(Pageable pageable);
 
     Void deleteProduct(Long id);
+
+    ProductResponse editProduct(EditProductRequest request, Long id);
 
 }

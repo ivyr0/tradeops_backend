@@ -7,6 +7,7 @@ import com.tradeops.model.entity.InventoryItem;
 import com.tradeops.model.entity.Product;
 import com.tradeops.model.request.CreateProductRequest;
 import com.tradeops.model.request.DeleteProductRequest;
+import com.tradeops.model.request.EditProductRequest;
 import com.tradeops.model.response.ProductResponse;
 import com.tradeops.repo.CategoryRepo;
 import com.tradeops.repo.ProductRepo;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -126,5 +128,21 @@ public class ProductServiceImpl implements ProductService {
         
         productRepo.delete(product);
         return null;
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse editProduct(EditProductRequest request, Long id) {
+        Product product = productRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        product.setName(request.productName());
+        product.setBasePrice(request.price());
+
+        Long categoryId = product.getCategory() != null ? product.getCategory().getId() : null;
+
+        if(!Objects.equals(categoryId, request.categoryId())) {
+            product.setCategory(categoryRepo.findById(request.categoryId()).orElseThrow(() -> new ResourceNotFoundException("Category not found")));
+        }
+
+        return mapToResponse(product);
     }
 }

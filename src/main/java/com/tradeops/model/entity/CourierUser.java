@@ -26,7 +26,7 @@ public class CourierUser {
     @ToString.Include
     private String phone;
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
     @JoinTable(
             name = "courier_roles",
             joinColumns = @JoinColumn(name = "courier_user_id", referencedColumnName = "id"),

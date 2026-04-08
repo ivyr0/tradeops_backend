@@ -36,11 +36,17 @@ public class JWTService {
 
     Date now = new Date();
     Date expiry = new Date(now.getTime() + SecurityConstants.JWT_EXPIRATION_TIME);
+    
+    // Add this debug log
+    System.out.println(username);
+    System.out.println("Token issued at: " + now);
+    System.out.println("Token expires at: " + expiry);
+    System.out.println("Expiration time (ms): " + SecurityConstants.JWT_EXPIRATION_TIME);
 
     return Jwts.builder()
         .subject(username)
         .claim("roles", roles)
-        .claim("scopes", scopes) // Add this claim
+        .claim("scopes", scopes)
         .issuedAt(now)
         .expiration(expiry)
         .signWith(getKey())

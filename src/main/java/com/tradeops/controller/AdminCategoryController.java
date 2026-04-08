@@ -1,9 +1,12 @@
 package com.tradeops.controller;
 
 import com.tradeops.model.request.CategoryRequest;
+import com.tradeops.model.request.EditCategoryRequest;
 import com.tradeops.model.response.CategoryResponse;
 import com.tradeops.service.CategoryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -34,5 +37,10 @@ public class AdminCategoryController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
         return ResponseEntity.ok(categoryService.deleteCategory(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CategoryResponse> editCategory(@RequestBody @Valid EditCategoryRequest request, @PathVariable Long id) {
+        return ResponseEntity.ok(categoryService.editCategory(request, id));
     }
 }

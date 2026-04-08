@@ -3,6 +3,7 @@ package com.tradeops.controller;
 import com.tradeops.model.request.ChangeProductStatusRequest;
 import com.tradeops.model.request.CreateProductRequest;
 import com.tradeops.model.request.DeleteProductRequest;
+import com.tradeops.model.request.EditProductRequest;
 import com.tradeops.model.response.ProductResponse;
 import com.tradeops.service.ProductService;
 import jakarta.validation.Valid;
@@ -41,6 +42,11 @@ public class AdminProductController {
     public ResponseEntity<Page<ProductResponse>> getProducts(
             Pageable pageable) {
         return ResponseEntity.ok(productService.getAllProducts(pageable));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductResponse> editProduct(@Valid @RequestBody EditProductRequest request, @PathVariable Long id) {
+        return ResponseEntity.ok(productService.editProduct(request, id));
     }
 
     @DeleteMapping("/{id}")

@@ -43,30 +43,36 @@ public class RoleSeeder implements CommandLineRunner {
   @Override
   @Transactional
   public void run(String... args) throws Exception {
-    Role adminRole = roleRepo.findByName("ROLE_SUPER_ADMIN").orElseThrow(()->new ResourceNotFoundException("ROLE_ADMIN not found"));
+    Role adminRole = roleRepo.findByName("ROLE_SUPER_ADMIN")
+        .orElseThrow(() -> new ResourceNotFoundException("ROLE_SUPER_ADMIN not found"));
 
-    userRepo.findByUsername(ADMIN_USERNAME).ifPresentOrElse(
-            user -> {
-              boolean hasAdminRole = user.getRoles().stream()
-                      .anyMatch(r -> "ROLE_SUPER_ADMIN".equals(r.getName()));
+    // Check by email instead of username to avoid unique constraint violation
+    userRepo.findByEmail("admin@tradeops.com").ifPresentOrElse(
+        user -> {
+          boolean hasAdminRole = user.getRoles().stream()
+              .anyMatch(r -> "ROLE_SUPER_ADMIN".equals(r.getName()));
 
-              if (!hasAdminRole) {
-                user.getRoles().add(adminRole);
-                userRepo.save(user);
-              }
-            },
-            () -> {
-              var user = new UserEntity();
-              user.setUsername(ADMIN_USERNAME);
-              user.setEmail("admin@tradeops.com");
-              user.setFullName("Super Administrator");
-              user.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
-              user.setRoles(new ArrayList<>(Collections.singletonList(adminRole)));
-              user.setCreatedAt(LocalDateTime.now());
-              user.setActive(true);
-              userRepo.save(user);
-              System.out.println("✅ Super Admin created: " + ADMIN_USERNAME);
-            }
+          if (!hasAdminRole) {
+            user.getRoles().add(adminRole);
+            userRepo.save(user);
+            System.out.println("✅ Super Admin role added to existing user: " + user.getUsername());
+          } else {
+            System.out.println("✅ Super Admin already exists: " + user.getUsername());
+          }
+        },
+        () -> {
+          var user = new UserEntity();
+          user.setUsername(ADMIN_USERNAME);
+          user.setEmail("admin@tradeops.com");
+          user.setFullName("Super Administrator");
+          user.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
+          user.setRoles(new ArrayList<>(Collections.singletonList(adminRole)));
+          user.setCreatedAt(LocalDateTime.now());
+          user.setActive(true);
+          user.setApproved(true);
+          userRepo.save(user);
+          System.out.println("✅ Super Admin created: " + ADMIN_USERNAME);
+        }
     );
   }
 }

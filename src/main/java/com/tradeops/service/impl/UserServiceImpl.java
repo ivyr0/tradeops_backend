@@ -159,6 +159,26 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public ProfileResponse updateProfile(UpdateProfileRequest request) {
+        UserEntity user = getCurrentUser();
+        if(!Objects.equals(user.getFullName(), request.fullName())){
+            user.setFullName(request.fullName());
+            userEntityRepo.save(user);
+        }
+
+        return new ProfileResponse(user.getId(),user.getFullName(), user.getEmail());
+
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProfileResponse getProfile(){
+        UserEntity user = getCurrentUser();
+        return new ProfileResponse(user.getId(), user.getFullName(), user.getEmail());
+    }
+
+    @Override
+    @Transactional
     public LoginResponse refreshToken(RefreshTokenRequest request) {
         String incomingRefreshToken = request.refreshToken();
 
@@ -201,24 +221,6 @@ public class UserServiceImpl implements UserService {
         return new JWTResponse(access,refresh);
     }
 
-    private UserEntity createUserEntity(RegisterRequest req) {
-        UserEntity user = new UserEntity();
-        user.setFullName(req.fullName());
-        user.setEmail(req.email());
-        user.setUsername(req.email());
-        user.setPassword(passwordEncoder.encode(req.password()));
-        user.setCreatedAt(LocalDateTime.now());
-        return user;
-    }
-
-    private void validateRegistration(RegisterRequest req) {
-        if (!req.password().equals(req.confirmPassword())) {
-            throw new IllegalArgumentException("Passwords do not match");
-        }
-        if (userEntityRepo.existsByEmail(req.email())) {
-            throw new UserAlreadyExistsException("Email already registered");
-        }
-    }
 
 
 }

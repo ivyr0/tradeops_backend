@@ -1,6 +1,7 @@
 package com.tradeops.service;
 
 import com.tradeops.model.request.CategoryRequest;
+import com.tradeops.model.request.EditCategoryRequest;
 import com.tradeops.model.response.CategoryResponse;
 import com.tradeops.model.response.ProductResponse;
 import org.springframework.data.domain.Page;
@@ -16,4 +17,6 @@ public interface CategoryService {
     Page<CategoryResponse> getAllCategories(Pageable pageable);
 
     Void deleteCategory(Long id);
+
+    CategoryResponse editCategory(EditCategoryRequest request, Long id);
 }

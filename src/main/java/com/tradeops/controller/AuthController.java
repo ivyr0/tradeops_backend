@@ -1,18 +1,19 @@
 package com.tradeops.controller;
 
+import com.tradeops.model.request.ChangePasswordRequest;
 import com.tradeops.model.request.LoginRequest;
 import com.tradeops.model.request.RefreshTokenRequest;
+import com.tradeops.model.request.UpdateProfileRequest;
 import com.tradeops.model.response.LoginResponse;
+import com.tradeops.model.response.ProfileResponse;
 import com.tradeops.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.repository.config.RepositoryNameSpaceHandler;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -38,5 +39,21 @@ public class AuthController {
             userService.logout(token);
         }
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ProfileResponse> me(){
+        return ResponseEntity.ok(userService.getProfile());
+    }
+
+    @PostMapping("/update-profile")
+    public ResponseEntity<ProfileResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request){
+        return ResponseEntity.ok(userService.updateProfile(request));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(@RequestBody @Valid ChangePasswordRequest request){
+        userService.changePassword(request);
+        return ResponseEntity.ok().build();
     }
 }

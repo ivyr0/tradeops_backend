@@ -66,7 +66,7 @@ public class CourierAdminServiceImpl implements CourierAdminService {
         courier.setPhone(request.phone());
         courier.setRoles(List.of(courierRole));
         courier.setIsActive(true);
-        courier = courierUserRepo.save(courier);
+        courierUserRepo.save(courier);
 
         return courierUserMapper.toCourierUserResponse(courier);
     }
