@@ -6,6 +6,7 @@ import com.tradeops.model.entity.Category;
 import com.tradeops.model.entity.InventoryItem;
 import com.tradeops.model.entity.Product;
 import com.tradeops.model.request.CreateProductRequest;
+import com.tradeops.model.request.DeleteProductRequest;
 import com.tradeops.model.response.ProductResponse;
 import com.tradeops.repo.CategoryRepo;
 import com.tradeops.repo.ProductRepo;
@@ -115,5 +116,15 @@ public class ProductServiceImpl implements ProductService {
                 product.getImages(),
                 product.getCategory() != null ? product.getCategory().getId() : null,
                 availableQty);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Void deleteProduct(Long id) {
+        Product product = productRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + id + " not found"));
+        
+        productRepo.delete(product);
+        return null;
     }
 }

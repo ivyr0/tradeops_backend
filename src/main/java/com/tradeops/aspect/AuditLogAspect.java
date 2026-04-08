@@ -1,6 +1,8 @@
 package com.tradeops.aspect;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tradeops.annotation.Auditable;
 import com.tradeops.model.entity.AuditLog;
 import com.tradeops.repo.AuditLogRepo;
@@ -22,7 +24,7 @@ public class AuditLogAspect {
 
     private final AuditLogRepo auditLogRepo;
     private final AuditIdentityResolver identityResolver;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @AfterReturning(pointcut = "@annotation(auditable)", returning = "result")
     public void logAction(JoinPoint joinPoint, Auditable auditable, Object result) {
