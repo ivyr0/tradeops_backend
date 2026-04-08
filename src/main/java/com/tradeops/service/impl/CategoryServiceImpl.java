@@ -85,4 +85,14 @@ public class CategoryServiceImpl implements CategoryService {
     private Page<Category> getAllowedCategories(Long traderId, Pageable pageable){
         return categoryRepo.findAllByIdIn(tr.findCategoryIdsById(traderId), pageable);
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Void deleteCategory(Long id) {
+        if (!categoryRepo.existsById(id)) {
+            throw new ResourceNotFoundException("Category not found with id: " + id);
+        }
+        categoryRepo.deleteById(id);
+        return null;
+    }
 }

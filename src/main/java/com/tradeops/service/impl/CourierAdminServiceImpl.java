@@ -128,4 +128,17 @@ public class CourierAdminServiceImpl implements CourierAdminService {
             userEntityRepo.save(user);
         });
     }
+
+    @Override
+    @Transactional
+    @Auditable(action = "COURIER_DELETED", entityType = "COURIER")
+    public Void deleteCourier(Long id) {
+        CourierUser courier = courierUserRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier not found"));
+
+        userEntityRepo.findByUsername(courier.getPhone()).ifPresent(userEntityRepo::delete);
+        
+        courierUserRepo.delete(courier);
+        return null;
+    }
 }

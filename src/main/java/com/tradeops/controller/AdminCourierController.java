@@ -51,4 +51,10 @@ public class AdminCourierController {
         courierAdminService.toggleCourierStatus(id, request.status());
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCourier(@PathVariable Long id) {
+        return ResponseEntity.ok(courierAdminService.deleteCourier(id));
+    }
+
 }

@@ -14,4 +14,6 @@ public interface CategoryService {
     Page<CategoryResponse> getCategoriesByTraderParentIdsAndQuery(Long traderId, Long parentId, String query, Pageable pageable);
 
     Page<CategoryResponse> getAllCategories(Pageable pageable);
+
+    Void deleteCategory(Long id);
 }

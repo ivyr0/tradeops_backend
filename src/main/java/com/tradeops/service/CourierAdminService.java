@@ -12,4 +12,5 @@ public interface CourierAdminService {
     CourierUserResponse getCourierById(Long id);
     CourierUserResponse updateCourier(Long id, CourierUpdateRequest request);
     void toggleCourierStatus(Long id, boolean isActive);
+    Void deleteCourier(Long id);
 }

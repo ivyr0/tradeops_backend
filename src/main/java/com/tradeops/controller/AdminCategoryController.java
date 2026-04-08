@@ -30,4 +30,9 @@ public class AdminCategoryController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(categoryService.createCategory(request));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        return ResponseEntity.ok(categoryService.deleteCategory(id));
+    }
 }
