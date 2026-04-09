@@ -8,6 +8,7 @@ import com.tradeops.model.entity.*;
 import com.tradeops.model.request.CreateOrderRequest;
 import com.tradeops.model.request.OrderLineRequest;
 import com.tradeops.model.response.OrderResponse;
+import com.tradeops.model.response.OrdersCountResponse;
 import com.tradeops.repo.CustomerLinkRepo;
 import com.tradeops.repo.OrderRepo;
 import com.tradeops.repo.ProductRepo;
@@ -45,6 +46,12 @@ public class OrderServiceImpl implements OrderService {
     private final CustomerLinkRepo customerLinkRepo;
 
     private final OrderMapper orderMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrdersCountResponse getOrdersCount() {
+        return new OrdersCountResponse(orderRepo.count());
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)

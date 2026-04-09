@@ -2,6 +2,7 @@ package com.tradeops.controller;
 
 import com.tradeops.model.request.ChangeOrderStatusRequest;
 import com.tradeops.model.response.OrderResponse;
+import com.tradeops.model.response.OrdersCountResponse;
 import com.tradeops.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,11 @@ import org.springframework.web.bind.annotation.*;
 public class AdminOrdersController {
 
     private final OrderService orderService;
+
+    @GetMapping("/count")
+    public ResponseEntity<OrdersCountResponse> getOrdersCount(){
+        return ResponseEntity.ok(orderService.getOrdersCount());
+    }
 
     // FR-025: Просмотр всех заказов компании (с фильтрацией)
     @GetMapping

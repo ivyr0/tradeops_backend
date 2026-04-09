@@ -4,6 +4,7 @@ import com.tradeops.model.entity.Trader;
 import com.tradeops.model.request.ChangeTraderStatusRequest;
 import com.tradeops.model.request.TraderRequests.CreateTraderRequest;
 import com.tradeops.model.request.TraderRequests.UpdateTraderRequest;
+import com.tradeops.model.response.TraderCountResponse;
 import com.tradeops.model.response.TraderResponse;
 import com.tradeops.service.PackageBuildService;
 import com.tradeops.service.impl.TraderManagementServiceImpl;
@@ -28,6 +29,11 @@ public class SuperAdminTraderController {
 
     private final TraderManagementServiceImpl traderManagementService;
     private final PackageBuildService packageBuildService;
+
+    @GetMapping("/count")
+    public ResponseEntity<TraderCountResponse> getTraderCount(){
+        return ResponseEntity.ok(traderManagementService.getTraderCount());
+    }
 
     @PostMapping
     public ResponseEntity<TraderResponse> createTrader(@Valid @RequestBody CreateTraderRequest request) {

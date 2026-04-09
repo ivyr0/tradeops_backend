@@ -4,6 +4,7 @@ import com.tradeops.model.entity.Order;
 import com.tradeops.model.entity.OrderStatus;
 import com.tradeops.model.request.CreateOrderRequest;
 import com.tradeops.model.response.OrderResponse;
+import com.tradeops.model.response.OrdersCountResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +12,8 @@ import java.awt.print.Pageable;
 import java.util.List;
 
 public interface OrderService {
+
+    OrdersCountResponse getOrdersCount();
 
     // FR-023: Создание заказа с витрины (Резервирует склад, считает сумму, ставит
     // статус NEW)

@@ -7,6 +7,7 @@ import com.tradeops.mapper.TraderMapper;
 import com.tradeops.model.entity.Trader;
 import com.tradeops.model.request.TraderRequests.CreateTraderRequest;
 import com.tradeops.model.request.TraderRequests.UpdateTraderRequest;
+import com.tradeops.model.response.TraderCountResponse;
 import com.tradeops.model.response.TraderResponse;
 import com.tradeops.repo.TraderRepo;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,11 @@ public class TraderManagementServiceImpl {
 
     private final TraderRepo traderRepo;
     private final TraderMapper traderMapper;
+
+    @Transactional(readOnly = true)
+    public TraderCountResponse getTraderCount(){
+        return new TraderCountResponse(traderRepo.count());
+    }
 
     @Transactional
     @Auditable(action = "TRADER_CREATED", entityType = "TRADER")
